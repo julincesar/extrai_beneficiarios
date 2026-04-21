@@ -42,11 +42,14 @@ class App:
         vsb = ttk.Scrollbar(grid_frame, orient="vertical")
         hsb = ttk.Scrollbar(grid_frame, orient="horizontal")
 
-        self.tree = ttk.Treeview(grid_frame, columns=("beneficiario", "data", "codigo_servico"), show="headings",
+        self.tree = ttk.Treeview(grid_frame, columns=("beneficiario", "data", "codigo_servico", "qtd_cobrada", "qtd_paga", "valor"), show="headings",
                                  yscrollcommand=vsb.set, xscrollcommand=hsb.set)
         self.tree.heading("beneficiario", text="Beneficiário")
         self.tree.heading("data", text="Data")
         self.tree.heading("codigo_servico", text="Código de Serviço")
+        self.tree.heading("qtd_cobrada", text="Quantidade Cobrada")
+        self.tree.heading("qtd_paga", text="Quantidade Paga")
+        self.tree.heading("valor", text="Valor")
 
         vsb.config(command=self.tree.yview)
         hsb.config(command=self.tree.xview)
@@ -81,9 +84,6 @@ class App:
             for page in doc:
                 blocks = page.get_text("blocks")
 
-                # 🔑 Ordenar blocos corretamente (ESSENCIAL)
-                blocks = sorted(blocks, key=lambda b: (round(b[1]), round(b[0])))
-
                 for block in blocks:
                     text = block[4].strip()
 
@@ -106,13 +106,31 @@ class App:
                     # =========================
                     # 2. CÓDIGOS DE SERVIÇO
                     # =========================
-                    codes = re.findall(r'\b(5\d{6})\b', text)
+                    # Captura: código + quantidades + valor
+                    service_matches = re.findall(
+                        r'\b(5\d{6})\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)',
+                        text
+                    )
 
-                    if codes and current_beneficiary and current_date:
-                        for code in codes:
-                            self.records.append(
-                                (current_beneficiary, current_date, code)
-                            )
+                    if service_matches and current_beneficiary and current_date:
+                        for code, qtd_cobrada, qtd_paga, valor in service_matches:
+                            self.records.append((
+                                current_beneficiary,
+                                current_date,
+                                code,
+                                qtd_cobrada,
+                                qtd_paga,
+                                valor
+                            ))
+
+
+                    # codes = re.findall(r'\b(5\d{6})\b', text)
+
+                    # if codes and current_beneficiary and current_date:
+                    #     for code in codes:
+                    #         self.records.append(
+                    #             (current_beneficiary, current_date, code)
+                    #         )
 
             doc.close()
 
@@ -148,7 +166,7 @@ class App:
         try:
             with open(csv_path, "w", newline="") as f:
                 writer = csv.writer(f)
-                writer.writerow(["beneficiario", "data", "codigo_servico"])
+                writer.writerow(["beneficiario", "data", "codigo_servico", "qtd_cobrada", "qtd_paga", "valor"])
                 writer.writerows(self.records)
             tk.messagebox.showinfo("Sucesso", f"CSV gerado com {len(self.records)} registros: {csv_path}")
         except Exception as e:
