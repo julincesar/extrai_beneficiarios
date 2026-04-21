@@ -25,6 +25,9 @@ jobs:
       - name: Remove incompatible packages
         run: pip uninstall -y pathlib
 
+      - name: Test fitz import
+        run: python -c "import fitz; print(fitz.__version__)"
+        
       - name: Build EXE
         run: pyinstaller gui.spec
 
