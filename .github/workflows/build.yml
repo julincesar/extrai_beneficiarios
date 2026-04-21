@@ -20,7 +20,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller
-          pip install -r requirements.txt
+          pip install PyMuPDF==1.23.8
+          pip install fitz
 
       - name: Remove incompatible packages
         run: pip uninstall -y pathlib
