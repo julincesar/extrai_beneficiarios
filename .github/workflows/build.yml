@@ -20,15 +20,13 @@ jobs:
       - name: Install dependencies
         run: |
           pip install pyinstaller
-          pip install PyMuPDF==1.23.8
-          pip install fitz
+          pip install PyMuPDF
 
       - name: Remove incompatible packages
-        run: pip uninstall -y pathlib
+        run: |
+          pip uninstall -y pathlib
+          pip uninstall -y frontend
 
-      - name: Test fitz import
-        run: python -c "import fitz; print(fitz.__version__)"
-        
       - name: Build EXE
         run: pyinstaller gui.spec
 
