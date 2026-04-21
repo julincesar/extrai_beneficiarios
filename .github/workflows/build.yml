@@ -22,6 +22,9 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
+      - name: Remove incompatible packages
+        run: pip uninstall -y pathlib
+
       - name: Build EXE
         run: pyinstaller gui.spec
 
