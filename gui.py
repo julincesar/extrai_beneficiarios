@@ -73,38 +73,68 @@ class App:
 
         try:
             doc = fitz.open(pdf_path)
-            pages = [page.get_text("blocks") for page in doc]
-            doc.close()
 
             self.records = []
             current_beneficiary = None
             current_date = None
 
-            for i, page in enumerate(pages):
-                for j, line in enumerate(page):
-                    main_match = re.search(r'(\d{2}/\d{2}/\d{4}) \d{2}:\d{2}:\d{2}\s+\S+\s+\d\s+([A-Z\s]+)\s+\d+,\d{2}', line[4])
+            for page in doc:
+                blocks = page.get_text("blocks")
+
+                # 🔑 Ordenar blocos corretamente (ESSENCIAL)
+                blocks = sorted(blocks, key=lambda b: (round(b[1]), round(b[0])))
+
+                for block in blocks:
+                    text = block[4].strip()
+
+                    # Normalizar espaços
+                    text = re.sub(r'\s+', ' ', text)
+
+                    # =========================
+                    # 1. LINHA PRINCIPAL
+                    # =========================
+                    main_match = re.search(
+                        r'(\d{2}/\d{2}/\d{4})\s+\d{2}:\d{2}:\d{2}.*?([A-ZÁÉÍÓÚÃÕÇ\s]+?)\s+\d+,\d{2}',
+                        text
+                    )
+
                     if main_match:
                         current_date = main_match.group(1)
                         current_beneficiary = main_match.group(2).strip()
                         continue
 
-                    code_match = re.match(r'^(5\d{6})\s', line[4])
-                    if code_match and current_beneficiary and current_date:
-                        self.records.append((current_beneficiary, current_date, code_match.group(1)))
+                    # =========================
+                    # 2. CÓDIGOS DE SERVIÇO
+                    # =========================
+                    codes = re.findall(r'\b(5\d{6})\b', text)
 
-            # Clear previous data
+                    if codes and current_beneficiary and current_date:
+                        for code in codes:
+                            self.records.append(
+                                (current_beneficiary, current_date, code)
+                            )
+
+            doc.close()
+
+            # Limpar tabela
             for item in self.tree.get_children():
                 self.tree.delete(item)
 
-            # Insert new data
+            # Inserir novos dados
             for record in self.records:
                 self.tree.insert("", "end", values=record)
 
-            tk.messagebox.showinfo("Sucesso", f"{len(self.records)} registros processados.")
+            tk.messagebox.showinfo(
+                "Sucesso",
+                f"{len(self.records)} registros processados."
+            )
 
         except Exception as e:
-            tk.messagebox.showerror("Erro", f"Ocorreu um erro ao processar o PDF: {e}")
-
+            tk.messagebox.showerror(
+                "Erro",
+                f"Ocorreu um erro ao processar o PDF: {e}"
+            )
+            
     def save_csv(self):
         csv_path = self.csv_path.get()
         if not csv_path:
